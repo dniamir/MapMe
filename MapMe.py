@@ -11,6 +11,7 @@ class MapMeClass:
         self.data = self.__ReadJson(directory, filename)
         self.data = self.__DeriveTimeIntervals(self.data)
         self.data = self.__FixLatLong(self.data)
+        self.__originaldata = self.data
 
     def __ReadJson(self, directory, filename):
         """ Read JSON file provided by Google Location Services into a Dataframe
@@ -114,12 +115,17 @@ class MapMeClass:
         self.layout = Layout(layout_dict)
 
     def Filter(self, filter):
-        """ Filter MapMeClass data by index
+        """ Filter MapMe Class data by index
 
         args:
             filter: Boolean series filter
         """
         self.data = self.data.loc[filter, :]
+
+    def ClearFilter(self):
+        """ Clear filter on self.data """
+        self.data = self.__originaldata
+
 
     def PlotMap(self,
                 mode='markers',
