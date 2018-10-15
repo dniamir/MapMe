@@ -7,13 +7,14 @@ from plotly.offline import download_plotlyjs, init_notebook_mode, plot, iplot
 class MapMeClass:
     """ Class for all Google Location Services functions and properties"""
 
-    def __init__(self, directory, filename):
-        self.data = self.__ReadJson(directory, filename)
-        self.data = self.__DeriveTimeIntervals(self.data)
-        self.data = self.__FixLatLong(self.data)
-        self.__originaldata = self.data
+    def __init__(self, filepath):
+        self.data = self._ReadJson(filepath)
+        self.data = self._DeriveTimeIntervals(self.data)
+        self.data = self._FixLatLong(self.data)
+        self.fig = None
+        self._originaldata = self.data
 
-    def __ReadJson(self, directory, filename):
+    def _ReadJson(self, filepath):
         """ Read JSON file provided by Google Location Services into a Dataframe
 
         args:
@@ -56,7 +57,7 @@ class MapMeClass:
 
         return json_df
 
-    def __FixLatLong(self, json_df):
+    def _FixLatLong(self, json_df):
         """ Fix Lat and Long coordinates so Google Maps can Read them
 
         args:
@@ -69,7 +70,7 @@ class MapMeClass:
         json_df['longitudeE7'] = json_df['longitudeE7'] / 10000000
         return json_df
 
-    def __SetScatterData(self,
+    def _SetScatterData(self,
                          mode='markers',
                          markersize=10,
                          markercolour='rgb(255,0,0)',
@@ -85,23 +86,26 @@ class MapMeClass:
                             text=self.data['timestamp_string'],
                             marker=marker_dict)
 
-        self.scatterdata = Data([Scattermapbox(scatter_dict)])
+        self.scatterdata = go.Scattermapbox(scatter_dict)
 
-    def __SetLayout(self,
-                    height=800,
-                    width=1200,
-                    style='outdoors',
-                    mapbox_access_token=None):
+    def _SetLayout(self,
+                   height=800,
+                   width=1200,
+                   style='outdoors',
+                   mapbox_access_token=None):
 
-        center_dict = dict(lat=self.data['latitudeE7'].values[0],
-                           lon=self.data['longitudeE7'].values[0]
+        start_lats = self.data['latitudeE7'].values
+        start_longs = self.data['longitudeE7'].values
+
+        center_dict = dict(lat=start_lats[int(len(start_lats)/2)],
+                           lon=start_longs[int(len(start_longs)/2)]
                            )
 
         mapbox_dict =dict(accesstoken=mapbox_access_token,
                           bearing=0,
                           center=center_dict,
                           pitch=0,
-                          zoom=10,
+                          zoom=7,
                           style=style,
                           )
 
@@ -112,7 +116,7 @@ class MapMeClass:
                            mapbox=mapbox_dict
                           )
 
-        self.layout = Layout(layout_dict)
+        self.layout = go.Layout(layout_dict)
 
     def Filter(self, filter):
         """ Filter MapMe Class data by index
@@ -124,10 +128,11 @@ class MapMeClass:
 
     def ClearFilter(self):
         """ Clear filter on self.data """
-        self.data = self.__originaldata
+        self.data = self._originaldata
 
 
     def PlotMap(self,
+                mapbox_access_token,
                 mode='markers',
                 markersize=10,
                 markercolour='rgb(255,0,0)',
@@ -135,10 +140,12 @@ class MapMeClass:
                 height=800,
                 width=1200,
                 style='outdoors',
-                mapbox_access_token=None):
+                renderer=None,
+                **kwargs):
         """ Plot location data on a plotly interactive map
 
         args:
+            mapbox_access_token: Token required to access mapbox
             mode: Type of plot
             markersize: Marker size
             markercolour: Marker colour
@@ -146,28 +153,30 @@ class MapMeClass:
             height: Height of figure
             width: Width of figure
             style: Style of map
-            mapbox_access_token: Token required to access mapbox
+            renderer: Plotly renderer type to use when plotting
+            **kwargs: Other keywords ot be passed onto the "show"" function
 
         return:
             self.fig: plotly figure
         """
 
         # Set Data and Layout
-        self.__SetScatterData(mode=mode,
+        self._SetScatterData(mode=mode,
                               markersize=markersize,
                               markercolour=markercolour,
                               opacity=opacity,)
 
-        self.__SetLayout(height=height,
+        self._SetLayout(height=height,
                          width=width,
                          style=style,
                          mapbox_access_token=mapbox_access_token)
 
-        # Plot Data
-        init_notebook_mode(connected=True);
-        plotly.offline.init_notebook_mode();
-        self.fig = dict(data=self.scatterdata, layout=self.layout)
-        plotly.offline.plot(self.fig)
+        fig = go.Figure()
+        fig.add_trace(self.scatterdata)
+        fig.update_layout(self.layout)
+        fig.show(renderer=renderer, **kwargs)
+        self.fig = fig
+
         return self.fig
 
 
