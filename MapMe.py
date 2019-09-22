@@ -1,8 +1,7 @@
 import os
 import pandas as pd
-from plotly.graph_objs import *
-import plotly
-from plotly.offline import download_plotlyjs, init_notebook_mode, plot, iplot
+import plotly.graph_objects as go
+
 
 class MapMeClass:
     """ Class for all Google Location Services functions and properties"""
@@ -24,14 +23,13 @@ class MapMeClass:
         returns:
             json_df dataframe containing the json data
         """
-        path = os.path.join(directory, filename)
-        json_data = pd.read_json(path, orient='values')
+        json_data = pd.read_json(filepath, orient='values')
         dict_list = json_data['locations'].tolist()
         json_df = pd.DataFrame.from_dict(dict_list)
         json_df = json_df.filter(items=['latitudeE7', 'longitudeE7', 'timestampMs'])
         return json_df
 
-    def __DeriveTimeIntervals(self, json_df):
+    def _DeriveTimeIntervals(self, json_df):
         """ Derive time properties from Google location services josn file time stamp
 
         args:
@@ -162,14 +160,14 @@ class MapMeClass:
 
         # Set Data and Layout
         self._SetScatterData(mode=mode,
-                              markersize=markersize,
-                              markercolour=markercolour,
-                              opacity=opacity,)
+                             markersize=markersize,
+                             markercolour=markercolour,
+                             opacity=opacity,)
 
         self._SetLayout(height=height,
-                         width=width,
-                         style=style,
-                         mapbox_access_token=mapbox_access_token)
+                        width=width,
+                        style=style,
+                        mapbox_access_token=mapbox_access_token)
 
         fig = go.Figure()
         fig.add_trace(self.scatterdata)
